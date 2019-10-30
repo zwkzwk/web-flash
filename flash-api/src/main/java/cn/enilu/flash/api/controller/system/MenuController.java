@@ -7,7 +7,7 @@ import cn.enilu.flash.bean.dictmap.MenuDict;
 import cn.enilu.flash.bean.entity.system.Menu;
 import cn.enilu.flash.bean.enumeration.BizExceptionEnum;
 import cn.enilu.flash.bean.enumeration.Permission;
-import cn.enilu.flash.bean.exception.GunsException;
+import cn.enilu.flash.bean.exception.ApplicationException;
 import cn.enilu.flash.bean.vo.front.Rets;
 import cn.enilu.flash.bean.vo.node.MenuNode;
 import cn.enilu.flash.bean.vo.node.Node;
@@ -16,7 +16,7 @@ import cn.enilu.flash.service.system.LogObjectHolder;
 import cn.enilu.flash.service.system.MenuService;
 import cn.enilu.flash.service.system.impl.ConstantFactory;
 import cn.enilu.flash.utils.Maps;
-import cn.enilu.flash.utils.ToolUtil;
+import cn.enilu.flash.utils.StringUtil;
 import com.google.common.collect.Lists;
 import org.apache.shiro.authz.annotation.RequiresPermissions;
 import org.slf4j.Logger;
@@ -56,8 +56,8 @@ public class MenuController extends BaseController {
         //判断是否存在该编号
         if(menu.getId()==null) {
             String existedMenuName = ConstantFactory.me().getMenuNameByCode(menu.getCode());
-            if (ToolUtil.isNotEmpty(existedMenuName)) {
-                throw new GunsException(BizExceptionEnum.EXISTED_THE_MENU);
+            if (StringUtil.isNotEmpty(existedMenuName)) {
+                throw new ApplicationException(BizExceptionEnum.EXISTED_THE_MENU);
             }
             menu.setStatus(MenuStatus.ENABLE.getCode());
         }
@@ -77,8 +77,8 @@ public class MenuController extends BaseController {
     @RequiresPermissions(value = {Permission.MENU_DEL})
     public Object remove(@RequestParam Long id) {
         logger.info("id:{}", id);
-        if (ToolUtil.isEmpty(id)) {
-            throw new GunsException(BizExceptionEnum.REQUEST_NULL);
+        if (id == null) {
+            throw new ApplicationException(BizExceptionEnum.REQUEST_NULL);
         }
         //演示环境不允许删除初始化的菜单
         if(id.intValue()<70){
@@ -98,7 +98,7 @@ public class MenuController extends BaseController {
     public Object menuTreeListByRoleId(Integer roleId) {
         List<Long> menuIds = menuService.getMenuIdsByRoleId(roleId);
         List<ZTreeNode> roleTreeList = null;
-        if (ToolUtil.isEmpty(menuIds)) {
+        if (menuIds==null||menuIds.isEmpty()) {
             roleTreeList = menuService.menuTreeList(null);
         } else {
             roleTreeList = menuService.menuTreeList(menuIds);
