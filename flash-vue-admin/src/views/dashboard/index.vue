@@ -1,6 +1,6 @@
 <template>
   <div class="dashboard-container">
-    <div class="dashboard-text">欢迎光临:{{name}}(<span v-for='role in roles' :key='role'>{{role}}</span>)</div>
+    <div class="dashboard-text">欢迎光临:{{name}} </div>
 
     <el-row :gutter="20">
       <el-col :span="6">
@@ -11,7 +11,7 @@
           <el-col :span="12" >
             <div class="card-panel-text">{{ $t('dashboard.document') }}</div>
             <div class="card-panel-num">
-              <a href="http://enilu.github.io/web-flash" target="_blank">Document</a>
+              <a href="http://enilu.gitee.io/web-flash" target="_blank">Document</a>
             </div>
           </el-col>
         </el-card>

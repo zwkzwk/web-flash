@@ -6,10 +6,7 @@ import cn.enilu.flash.bean.entity.system.User;
 import cn.enilu.flash.bean.vo.front.Rets;
 import cn.enilu.flash.core.log.LogManager;
 import cn.enilu.flash.core.log.LogTaskFactory;
-import cn.enilu.flash.security.JwtUtil;
 import cn.enilu.flash.security.ShiroFactroy;
-import cn.enilu.flash.service.system.AccountService;
-import cn.enilu.flash.service.system.MenuService;
 import cn.enilu.flash.service.system.UserService;
 import cn.enilu.flash.utils.HttpUtil;
 import cn.enilu.flash.utils.MD5;
@@ -26,7 +23,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -42,10 +38,7 @@ public class AccountController extends BaseController{
 
     @Autowired
     private UserService userService;
-    @Autowired
-    private AccountService accountService;
-    @Autowired
-    private MenuService menuService;
+
     /**
      * 用户登录<br>
      * 1，验证没有注册<br>
@@ -71,9 +64,8 @@ public class AccountController extends BaseController{
                 return Rets.failure("输入的密码错误");
             }
 
-            String token = JwtUtil.sign(user);
+            String token = userService.loginForToken(user);
             Map<String, String> result = new HashMap<>(1);
-            logger.info("token:{}",token);
             result.put("token", token);
             LogManager.me().executeLog(LogTaskFactory.loginLog(user.getId(), HttpUtil.getIp()));
             return Rets.success(result);
@@ -81,20 +73,6 @@ public class AccountController extends BaseController{
             logger.error(e.getMessage(), e);
         }
         return Rets.failure("登录时失败");
-    }
-
-    /**
-     * 退出登录
-     * @return
-     */
-    @RequestMapping(value = "/logout",method = RequestMethod.POST)
-    public Object logout(){
-        HttpServletRequest request = HttpUtil.getRequest();
-        String token = this.getToken(HttpUtil.getRequest());
-        accountService.logout(token);
-        Long idUser = getIdUser(request);
-        LogManager.me().executeLog(LogTaskFactory.exitLog(idUser, HttpUtil.getIp()));
-        return Rets.success();
     }
 
     @RequestMapping(value = "/info",method = RequestMethod.GET)
@@ -113,9 +91,6 @@ public class AccountController extends BaseController{
             }
             ShiroUser shiroUser = ShiroFactroy.me().shiroUser(user);
             Map map = Maps.newHashMap("name",user.getName(),"role","admin","roles", shiroUser.getRoleCodes());
-
-            List menus = menuService.getMenusByRoleIds(shiroUser.getRoleList());
-            map.put("menus",menus);
             map.put("permissions",shiroUser.getUrls());
             Map profile = (Map) Mapl.toMaplist(user);
             profile.put("dept",shiroUser.getDeptName());
@@ -129,18 +104,22 @@ public class AccountController extends BaseController{
     @RequestMapping(value = "/updatePwd",method = RequestMethod.POST)
     public Object updatePwd( String oldPassword,String password, String rePassword){
         try {
+
+            if(StringUtil.isEmpty(password) || StringUtil.isEmpty(rePassword)){
+                return Rets.failure("密码不能为空");
+            }
+            if(!password.equals(rePassword)){
+                return Rets.failure("新密码前后不一致");
+            }
             User user = userService.get(getIdUser(HttpUtil.getRequest()));
             if(ApiConstants.ADMIN_ACCOUNT.equals(user.getAccount())){
                 return Rets.failure("不能修改超级管理员密码");
             }
             logger.info("oldPassword:{},password:{},rePassword:{}",MD5.md5(oldPassword, user.getSalt()),password,rePassword);
-
             if(!MD5.md5(oldPassword, user.getSalt()).equals(user.getPassword())){
                 return Rets.failure("旧密码输入错误");
             }
-            if(!password.equals(rePassword)){
-                return Rets.failure("新密码前后不一致");
-            }
+
             user.setPassword(MD5.md5(password, user.getSalt()));
             userService.update(user);
             return Rets.success();
